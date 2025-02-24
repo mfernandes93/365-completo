@@ -1,87 +1,43 @@
-public static class GerenciadorSufixoUnico
+public static class ContadorGlobalSufixo
 {
     /// <summary>
-    /// Retorna o próximo sufixo para o nomeBase, no formato ((N)),
-    /// lendo e escrevendo tudo em um único método, sem chamadas separadas.
+    /// Lê a última linha de "jaBaixados.txt", incrementa o número dentro de ((N)),
+    /// anexa o novo sufixo ao final do arquivo e retorna "((N+1))".
     /// </summary>
-    /// <param name="nomeBase">Nome identificador (ex: "Relatorio")</param>
-    /// <returns>String no formato ((N)), por exemplo ((3))</returns>
-    public static string ObterSufixoIncrementado(string nomeBase)
+    public static string ObterSufixoIncrementado()
     {
-        // Caminho do arquivo onde mantemos o controle dos sufixos
         string caminhoArquivo = "jaBaixados.txt";
+        int ultimoValor = 0;
 
-        // Dicionário temporário para armazenar { nomeBase -> sufixoAtual }
-        var mapa = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-        // 1) Ler o arquivo, se existir
-        if (System.IO.File.Exists(caminhoArquivo))
+        // 1) Se o arquivo existir, tentar extrair o valor da última linha
+        if (File.Exists(caminhoArquivo))
         {
-            var linhas = System.IO.File.ReadAllLines(caminhoArquivo);
-            foreach (var linha in linhas)
+            var todasAsLinhas = File.ReadAllLines(caminhoArquivo);
+            if (todasAsLinhas.Length > 0)
             {
-                if (string.IsNullOrWhiteSpace(linha))
-                    continue;
-
-                // Exemplo de linha: "Relatorio=2"
-                var partes = linha.Split('=');
-                if (partes.Length == 2)
+                string ultimaLinha = todasAsLinhas[todasAsLinhas.Length - 1].Trim();
+                // Exemplo: "((3))"
+                if (ultimaLinha.StartsWith("((") && ultimaLinha.EndsWith("))"))
                 {
-                    string nome = partes[0].Trim();
-                    if (int.TryParse(partes[1].Trim(), out int sufixo))
+                    // Extrai o conteúdo interno "3"
+                    string conteudo = ultimaLinha.Substring(2, ultimaLinha.Length - 4);
+                    if (int.TryParse(conteudo, out int valor))
                     {
-                        mapa[nome] = sufixo;
+                        ultimoValor = valor;
                     }
                 }
             }
         }
 
-        // 2) Verifica se já existe sufixo para este nomeBase
-        if (!mapa.ContainsKey(nomeBase))
-        {
-            // Se não existir, começa em 1
-            mapa[nomeBase] = 1;
-        }
-        else
-        {
-            // Se existir, incrementa
-            mapa[nomeBase]++;
-        }
+        // 2) Incrementa
+        int novoValor = ultimoValor + 1;
+        string novoSufixo = $"(({novoValor}))";
 
-        // 3) Obtém o valor atualizado
-        int sufixoAtual = mapa[nomeBase];
+        // 3) Anexa o novo sufixo ao final do arquivo
+        //    (Cria o arquivo se não existir)
+        File.AppendAllLines(caminhoArquivo, new[] { novoSufixo });
 
-        // 4) Salva de volta no arquivo
-        //    Sobrescreve todo o conteúdo com o dicionário atualizado
-        var linhasNovas = new List<string>();
-        foreach (var kvp in mapa)
-        {
-            // Cada linha no formato "nome=numero"
-            linhasNovas.Add($"{kvp.Key}={kvp.Value}");
-        }
-        System.IO.File.WriteAllLines(caminhoArquivo, linhasNovas);
-
-        // 5) Retorna o sufixo no formato ((N))
-        return $"(({sufixoAtual}))";
+        // 4) Retorna o novo sufixo
+        return novoSufixo;
     }
 }
-Como usar no seu código
-No trecho em que você cria o nome final do arquivo, basta fazer:
-
-csharp
-Copiar
-// Exemplo de uso:
-string nomeBase = Path.GetFileNameWithoutExtension(fileAttachment.Name);
-
-// Em vez de contadorArquivos, chame o método único:
-string sufixo = GerenciadorSufixoUnico.ObterSufixoIncrementado(nomeBase);
-
-// Monta o nome final com prefixo data, etc.
-string prefixoData = DateTime.Now.ToString("ddMMyyyyHHmmss_");
-string extensao = Path.GetExtension(fileAttachment.Name);
-string novoNomeArquivo = nomeBase + prefixoData + sufixo + extensao;
-
-// Caminho final
-string novoNomeCompleto = Path.Combine(pathDestino, novoNomeArquivo);
-
-// (Verifica se existe no histórico ou no disco, salva, etc.)
