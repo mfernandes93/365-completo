@@ -1,0 +1,260 @@
+Abaixo está um exemplo de fluxo que unifica tudo o que você descreveu:
+
+Um método principal (por exemplo, tratarEmail365Async) onde você faz:
+
+Declara todas as variáveis necessárias no início (incluindo myIdObjeto, emailbox, searchKey etc.).
+Executa os if (conforme o print dos parâmetros do DataAccess e do myIdObjeto).
+Em cada if, chama o método específico (por exemplo, BaixarOnboardDigitalAsync) que, internamente, chama:
+3 métodos de obtenção de token em sequência (sem retornar ou receber parâmetros externos).
+Por fim, o método genérico BaixarAnexosFiltradosAsync().
+Cada método roda em modo assíncrono (async/await), para não travar o Windows Forms.
+
+As exceções são capturadas via try/catch e logadas com Console.WriteLine (ou o que você preferir).
+
+As variáveis de token podem ser armazenadas em campos privados da classe, dispensando “passar ou retornar” explicitamente.
+
+A estrutura abaixo ilustra como “juntar tudo” em uma classe. Ajuste nomes, namespaces e chamadas de acordo com seu projeto real.
+
+csharp
+Copiar
+using System;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace SeuProjeto
+{
+    public class TratamentoEmail365
+    {
+        // --------------------------------------------------
+        // Variáveis/campos que podem guardar tokens e afins
+        // --------------------------------------------------
+        private string _vaultTokenMutualTls;
+        private string _vaultTokenCertificado;
+        private string _azureAccessToken;
+
+        // Caso queira armazenar também MailBox, SearchKey, etc.
+        private int _myIdObjeto;
+        private string _emailbox;
+        private string _searchKey;
+
+        // ------------------------------------------
+        // Método principal chamado pelo seu "if"
+        // ------------------------------------------
+        // Exemplo de assinatura pedida:
+        //   public async Task tratarEmail365Async(int myIdObjeto, string emailbox, string searchKey)
+        //
+        // Se seu método "tratarEmailCRP()" for void, você pode
+        // chamá-lo via Task.Run(...) ou tornar "tratarEmailCRP()" async.
+        public async Task tratarEmail365Async(int myIdObjeto, string emailbox, string searchKey)
+        {
+            // Todas as variáveis no começo
+            _myIdObjeto = myIdObjeto;
+            _emailbox = emailbox;
+            _searchKey = searchKey;
+
+            try
+            {
+                // Exemplos de ifs (baseados no print que você enviou):
+                // Ajuste a comparação DataAccess.GetParametro(...) conforme sua regra.
+
+                if (_myIdObjeto == 1 && 
+                    DataAccess.GetParametro("CCPD_AberturaContaPJ_MailBox") == _emailbox)
+                {
+                    // Exemplo: chamar BaixarOnboardDigitalAsync()
+                    await BaixarOnboardDigitalAsync();
+                }
+                else if (_myIdObjeto == 20 &&
+                         DataAccess.GetParametro("CCPD_AberturaContaAgro_MailBox") == _emailbox)
+                {
+                    // Exemplo: chamar outro método, se quiser
+                    // await BaixarOnboardAgroAsync();
+                }
+                else if (_myIdObjeto == 26 &&
+                         DataAccess.GetParametro("CCPD_OnboardingDigitalMailBox") == _emailbox)
+                {
+                    // Outro if, chamando outro método...
+                    // await BaixarOnboardDigitalAsync();
+                }
+                // ... e assim por diante para cada caso
+                else
+                {
+                    Console.WriteLine("Nenhuma condição atendida. Fluxo padrão ou nada.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em tratarEmail365Async: " + ex.Message);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // Exemplo de método que chama as 3 rotinas de Token + Anexos
+        // ---------------------------------------------------------
+        private async Task BaixarOnboardDigitalAsync()
+        {
+            try
+            {
+                // 1) ObterTokenVaultComAutMutualTlsAsync
+                await ObterTokenVaultComAutMutualTlsAsync();
+
+                // 2) ObterTokenVaultComCertificadoAsync
+                await ObterTokenVaultComCertificadoAsync();
+
+                // 3) ObterAzureTokenAsync
+                await ObterAzureTokenAsync();
+
+                // 4) Agora, com _azureAccessToken pronto, chamamos BaixarAnexosFiltradosAsync
+                await BaixarAnexosFiltradosAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em BaixarOnboardDigitalAsync: " + ex.Message);
+            }
+        }
+
+        // -------------------------------------------------------
+        // Métodos de Token (cada um sem retornar nada “externo”)
+        // Armazenam internamente nas variáveis da classe
+        // -------------------------------------------------------
+
+        private async Task ObterTokenVaultComAutMutualTlsAsync()
+        {
+            try
+            {
+                // Simulação do seu código:
+                // (não precisa receber parâmetros, nem retornar)
+                // Ao final, armazena no _vaultTokenMutualTls
+                _vaultTokenMutualTls = "TokenMutualTlsFicticio";
+                await Task.Delay(200); // simula delay de I/O
+
+                Console.WriteLine("ObterTokenVaultComAutMutualTlsAsync OK");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em ObterTokenVaultComAutMutualTlsAsync: " + ex.Message);
+            }
+        }
+
+        private async Task ObterTokenVaultComCertificadoAsync()
+        {
+            try
+            {
+                // Mesma ideia:
+                _vaultTokenCertificado = "TokenCertificadoFicticio";
+                await Task.Delay(200);
+
+                Console.WriteLine("ObterTokenVaultComCertificadoAsync OK");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em ObterTokenVaultComCertificadoAsync: " + ex.Message);
+            }
+        }
+
+        private async Task ObterAzureTokenAsync()
+        {
+            try
+            {
+                // Exemplo do seu método ADAL:
+                // var authContext = new AuthenticationContext(...);
+                // var cred = new ClientCredential(clientId, clientSecret);
+                // var result = await authContext.AcquireTokenAsync(resource, cred);
+                // _azureAccessToken = result.AccessToken;
+
+                _azureAccessToken = "AzureAccessTokenFicticio";
+                await Task.Delay(200);
+
+                Console.WriteLine("ObterAzureTokenAsync OK");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em ObterAzureTokenAsync: " + ex.Message);
+            }
+        }
+
+        // -------------------------------------------------------
+        // Método genérico BaixarAnexosFiltradosAsync
+        // que já consome o _azureAccessToken
+        // -------------------------------------------------------
+        private async Task BaixarAnexosFiltradosAsync()
+        {
+            try
+            {
+                // Aqui você usa _azureAccessToken, _emailbox, _searchKey etc.
+                // para filtrar e baixar anexos. Exemplo:
+                if (string.IsNullOrEmpty(_azureAccessToken))
+                {
+                    throw new Exception("Token do Azure não obtido.");
+                }
+
+                // Exemplo de simulação:
+                await Task.Delay(300); // simula requisição
+                Console.WriteLine("BaixarAnexosFiltradosAsync: usando token = " + _azureAccessToken);
+                Console.WriteLine("MailBox = " + _emailbox + " | searchKey = " + _searchKey);
+
+                // ... resto da lógica para baixar anexos ...
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro em BaixarAnexosFiltradosAsync: " + ex.Message);
+            }
+        }
+    }
+}
+Como chamar sem travar a UI (Windows Forms)
+No seu Form, no evento de clique de um botão ou onde preferir, você pode fazer:
+
+csharp
+Copiar
+private async void button1_Click(object sender, EventArgs e)
+{
+    try
+    {
+        var tratamento = new TratamentoEmail365();
+        
+        // Chama o método principal (assíncrono), passando os parâmetros
+        await tratamento.tratarEmail365Async(
+            myIdObjeto: 1, 
+            emailbox: "onboarding@dominio.com", 
+            searchKey: "algumaChave"
+        );
+
+        MessageBox.Show("Processo concluído!");
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Erro geral: " + ex.Message);
+    }
+}
+O await garante que a UI não congele, pois o método roda de forma assíncrona.
+Se você não quiser usar async no evento do botão, pode fazer Task.Run(() => tratamento.tratarEmail365Async(...)), mas então precisará lidar com exceções de outra forma.
+Observações Importantes
+Armazenamento de Tokens
+
+Neste exemplo, guardamos tudo em campos privados (_vaultTokenMutualTls, _vaultTokenCertificado, _azureAccessToken) para não precisar ficar retornando valores nem passando parâmetros.
+Se você preferir, pode unificar em um campo só, ou armazenar em outro lugar.
+Ordem de Execução
+
+O BaixarOnboardDigitalAsync() primeiro chama 3 métodos de token em sequência, depois chama BaixarAnexosFiltradosAsync().
+Caso outros cenários (por exemplo, “BaixarAnexoOnboardAgro”) também precisem desses tokens, basta repetir ou criar um método genérico que obtenha todos, antes de baixar anexos.
+Verificação de Null
+
+Caso algum método de token falhe, _azureAccessToken ou _vaultTokenMutualTls pode ficar nulo. No exemplo, mostramos um throw caso o token não exista.
+Ajuste conforme a lógica real.
+Logs / Console.WriteLine
+
+Em Windows Forms, o Console.WriteLine só aparece na janela de Output do Visual Studio ou se você rodar o EXE via prompt. Se quiser exibir num TextBox, use this.Invoke(...) para atualizar a UI a partir da thread assíncrona.
+Referências
+
+Para usar async/await no .NET 4.5.2, garanta que seu Language Version (no .csproj) seja C# 5.0 ou superior.
+As bibliotecas ADAL, Graph, etc., precisam ser versões compatíveis com .NET 4.5.2.
+Conclusão
+Com essa estrutura:
+
+Você tem um método principal (tratarEmail365Async) que faz os ifs e chama as rotinas específicas conforme myIdObjeto e DataAccess.GetParametro(...).
+Cada rotina específica (ex.: BaixarOnboardDigitalAsync) executa tudo em sequência:
+Obter tokens (3 métodos)
+Chamar BaixarAnexosFiltradosAsync()
+Tudo é assíncrono (async/await) para não travar o Windows Forms.
+Não há necessidade de “passar/retornar” tokens nos parâmetros, pois ficam guardados em campos privados.
+Ajuste nomes e lógicas conforme seus prints e necessidades reais. Se algo ficar faltando (por exemplo, parâmetros para filtrar datas, extensões de arquivo, etc.), basta inserir no início da classe ou nos métodos.
