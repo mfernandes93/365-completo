@@ -1,0 +1,159 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Graph;
+
+public class EmailProcessor
+{
+    // Suponha que essas variáveis já estejam definidas no contexto
+    private string mailbox;            // Ex: "onboard" ou "agro" ou outro
+    private GraphServiceClient graphClient; // Instanciado e autenticado
+    private string pathDestino = @"C:\Temp\Anexos"; // Pasta para salvar os anexos
+
+    /// <summary>
+    /// Método principal que decide qual fluxo seguir
+    /// </summary>
+    public void tratarEmailCRP()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(mailbox) &&
+                (mailbox.Equals("onboard", StringComparison.OrdinalIgnoreCase) ||
+                 mailbox.Equals("agro", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Fluxo para Graph: chama o método específico (executa em background para não travar a UI)
+                Task.Factory.StartNew(async () =>
+                {
+                    try
+                    {
+                        await tratarEmail365Async();
+                    }
+                    catch (Exception ex)
+                    {
+                        WhiteLine("Erro ao executar tratarEmail365Async: " + ex.Message);
+                    }
+                });
+            }
+            else
+            {
+                // Fluxo normal (por exemplo, para Exchange)
+                // ... seu código para Exchange ...
+                WhiteLine("Fluxo normal (Exchange)...");
+            }
+        }
+        catch (Exception ex)
+        {
+            WhiteLine("Erro em tratarEmailCRP: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Método que trata os emails via Graph (para "onboard" ou "agro")
+    /// com paginação e download dos anexos usando sufixo incremental.
+    /// </summary>
+    public async Task tratarEmail365Async()
+    {
+        try
+        {
+            // Exemplo de consulta: obtém a primeira página de mensagens da Inbox
+            var messages = await graphClient.Users[mailbox]
+                .MailFolders["Inbox"]
+                .Messages
+                .Request()
+                .Expand("attachments")
+                .OrderBy("receivedDateTime desc")
+                .Top(25)
+                .GetAsync();
+
+            // Enquanto houver mensagens (paginação)
+            while (messages != null && messages.Count > 0)
+            {
+                foreach (var message in messages)
+                {
+                    try
+                    {
+                        // Filtros: se já lido, se a data for menor que a data mínima ou se o assunto não conter a palavra obrigatória
+                        // (Ajuste as variáveis 'dataMinima' e 'assuntoObrigatorio' conforme sua necessidade)
+                        DateTime dataMinima = new DateTime(2023, 1, 1);
+                        string assuntoObrigatorio = "Relatório";
+
+                        if (message.IsRead == true)
+                            continue;
+                        if (message.ReceivedDateTime < dataMinima)
+                            continue;
+                        if (string.IsNullOrEmpty(message.Subject) ||
+                            !message.Subject.Contains(assuntoObrigatorio, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        // Se não houver anexos, pula o email
+                        if (!message.HasAttachments || message.Attachments == null || message.Attachments.Count == 0)
+                            continue;
+
+                        // Processa cada anexo (somente FileAttachment)
+                        foreach (var attachment in message.Attachments)
+                        {
+                            if (attachment is FileAttachment fileAttachment)
+                            {
+                                // Define o nome base (aqui ignoramos o nome para o sufixo global)
+                                string nomeBase = Path.GetFileNameWithoutExtension(fileAttachment.Name);
+
+                                // Prefixo com data/hora
+                                string prefixoData = DateTime.Now.ToString("ddMMyyyyHHmmss_");
+
+                                // Obtem o sufixo incremental (global, baseado na última linha do arquivo jaBaixados.txt)
+                                string sufixo = ContadorGlobalSufixo.ObterSufixoIncrementado();
+
+                                // Monta o novo nome do arquivo (o sufixo ficará antes da extensão)
+                                string extensao = Path.GetExtension(fileAttachment.Name);
+                                string novoNomeArquivo = nomeBase + prefixoData + sufixo + extensao;
+                                string novoNomeCompleto = Path.Combine(pathDestino, novoNomeArquivo);
+
+                                // Verifica se o arquivo já existe ou se consta no histórico (se houver essa lógica)
+                                if (File.Exists(novoNomeCompleto))
+                                {
+                                    WhiteLine($"Arquivo já existe: {novoNomeCompleto}");
+                                    continue;
+                                }
+
+                                // Salva o anexo em disco
+                                File.WriteAllBytes(novoNomeCompleto, fileAttachment.ContentBytes);
+                                WhiteLine($"Baixado: {novoNomeCompleto}");
+                            }
+                        }
+                    }
+                    catch (Exception exMsg)
+                    {
+                        WhiteLine("Erro ao processar mensagem: " + exMsg.Message);
+                    }
+                }
+
+                // Obtém a próxima página, se houver
+                if (messages.NextPageRequest != null)
+                {
+                    messages = await messages.NextPageRequest.GetAsync();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            WhiteLine("Erro em tratarEmail365Async: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Exemplo de método para exibir mensagens de log (pode ser adaptado para sua UI)
+    /// </summary>
+    private void WhiteLine(string message)
+    {
+        // Exemplo: escreve no console ou adiciona a um TextBox (via Invoke, se necessário)
+        Console.WriteLine(message);
+    }
+}
