@@ -1,0 +1,56 @@
+using System;
+using System.IO;
+
+public static class ContadorGlobalSufixo
+{
+    /// <summary>
+    /// Lê a última linha de "jaBaixados.txt", extrai o número do sufixo (ignorando qualquer extensão)
+    /// e retorna o novo sufixo incrementado no formato "((N))".
+    /// Cada chamada anexa o novo sufixo ao final do arquivo.
+    /// </summary>
+    public static string ObterSufixoIncrementado()
+    {
+        string caminhoArquivo = "jaBaixados.txt";
+        int ultimoValor = 0;
+
+        // Se o arquivo existir, tenta ler a última linha
+        if (File.Exists(caminhoArquivo))
+        {
+            var todasAsLinhas = File.ReadAllLines(caminhoArquivo);
+            if (todasAsLinhas.Length > 0)
+            {
+                string ultimaLinha = todasAsLinhas[todasAsLinhas.Length - 1].Trim();
+                // Exemplo esperado: "((3))" ou "((3)).pdf"
+                if (ultimaLinha.StartsWith("(("))
+                {
+                    string conteudo = "";
+                    // Se houver extensão, procuramos a sequência "))." para separar o número
+                    int index = ultimaLinha.IndexOf(")).");
+                    if (index > 0)
+                    {
+                        // Extrai o número entre "((" e "))."
+                        conteudo = ultimaLinha.Substring(2, index - 2);
+                    }
+                    else if (ultimaLinha.EndsWith("))"))
+                    {
+                        conteudo = ultimaLinha.Substring(2, ultimaLinha.Length - 4);
+                    }
+                    // Tenta converter o conteúdo extraído para inteiro
+                    if (int.TryParse(conteudo, out int valor))
+                    {
+                        ultimoValor = valor;
+                    }
+                }
+            }
+        }
+
+        // Incrementa o contador
+        int novoValor = ultimoValor + 1;
+        string novoSufixo = $"(({novoValor}))";
+
+        // Anexa o novo sufixo ao arquivo (cria o arquivo se não existir)
+        File.AppendAllLines(caminhoArquivo, new[] { novoSufixo });
+
+        return novoSufixo;
+    }
+}
