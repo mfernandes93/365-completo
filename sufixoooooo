@@ -1,0 +1,47 @@
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
+
+public static class ContadorGlobalSufixo
+{
+    /// <summary>
+    /// Lê a última linha do arquivo "jaBaixados.txt", extrai o número contido entre (( e )),
+    /// incrementa esse número em +1, anexa o novo sufixo ao arquivo e retorna o sufixo no formato "((N))".
+    /// Se o arquivo não existir ou não tiver um valor válido, inicia em 1.
+    /// </summary>
+    public static string ObterSufixoIncrementado()
+    {
+        string caminhoArquivo = "jaBaixados.txt";
+        int ultimoValor = 0;
+
+        // Verifica se o arquivo existe
+        if (File.Exists(caminhoArquivo))
+        {
+            var todasAsLinhas = File.ReadAllLines(caminhoArquivo);
+            if (todasAsLinhas.Length > 0)
+            {
+                string ultimaLinha = todasAsLinhas[todasAsLinhas.Length - 1].Trim();
+
+                // Expressão regular para extrair o número entre (( e ))
+                string pattern = @"\(\((\d+)\)\)";
+                Match match = Regex.Match(ultimaLinha, pattern);
+                if (match.Success)
+                {
+                    if (int.TryParse(match.Groups[1].Value, out int valor))
+                    {
+                        ultimoValor = valor;
+                    }
+                }
+            }
+        }
+
+        // Incrementa o valor
+        int novoValor = ultimoValor + 1;
+        string novoSufixo = $"(({novoValor}))";
+
+        // Anexa o novo sufixo ao final do arquivo (cria o arquivo se não existir)
+        File.AppendAllLines(caminhoArquivo, new[] { novoSufixo });
+
+        return novoSufixo;
+    }
+}
