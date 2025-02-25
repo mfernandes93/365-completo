@@ -1,0 +1,10 @@
+string logParametros = 
+        $"[BaixarAnexosFiltradosAsync] " +
+        $"token='{token}', " +
+        $"mailbox='{mailbox}', " +
+        $"pastaDestino='{pastaDestino}', " +
+        $"minData='{minData:yyyy-MM-dd HH:mm:ss}', " +
+        $"assuntoObrigatorio='{assuntoObrigatorio}', " +
+        $"searchKey='{searchKey}', " +
+        $"parametroExtra1='{parametroExtra1}', " +
+        $"parametroExtra2='{parametroExtra2}'";
