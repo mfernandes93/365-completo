@@ -1,15 +1,36 @@
-try
-{
-    xWorkBook.Close(false, Type.Missing, Type.Missing);
-    xApp.Quit();
-}
 finally
 {
-    Marshal.ReleaseComObject(xWorkSheet);
-    Marshal.ReleaseComObject(xWorkBook);
-    Marshal.ReleaseComObject(xApp);
+    if (xWorkBook != null)
+    {
+        // Fecha a pasta de trabalho sem salvar
+        xWorkBook.Close(false, Type.Missing, Type.Missing);
+    }
+    if (xApp != null)
+    {
+        // Fecha o Excel
+        xApp.Quit();
+    }
 
-    xWorkSheet = null;
-    xWorkBook = null;
-    xApp = null;
+    // Libera os objetos COM na ordem inversa de criação
+    if (xWorkSheet != null)
+    {
+        Marshal.ReleaseComObject(xWorkSheet);
+        xWorkSheet = null;
+    }
+    if (xWorkBook != null)
+    {
+        Marshal.ReleaseComObject(xWorkBook);
+        xWorkBook = null;
+    }
+    if (xApp != null)
+    {
+        Marshal.ReleaseComObject(xApp);
+        xApp = null;
+    }
+
+    // Força o GC a rodar para limpar objetos COM finalizados
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
 }
