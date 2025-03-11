@@ -1,0 +1,72 @@
+private async Task ProcessarPlanilhaAsync(
+    string filePath,
+    string Remetente,
+    string cc,
+    string verso,
+    string InicioMsgLog,
+    string NomeLog,
+    string Assunto,
+    DateTime dataRecebida,
+    string body,
+    string pastaDestino,
+    int _ID_planilha,
+    string NomeArquivoUploadCampos,
+    bool validarTiposCampos)
+{
+    OnboardingDigital ob = new OnboardingDigital();
+    CustomNoSiglatura cn = new CustomNoSiglatura();
+    CamposPlanilhaValidada cb = new CamposPlanilhaValidada()
+        .validaPlanCampos(_ID_planilha, NomeArquivoUploadCampos, validarTiposCampos);
+
+    try
+    {
+        // 1) Executa o método de tratar email em thread de fundo, aguardando até terminar
+        await Task.Run(() =>
+        {
+            ob.tratarEmailGra(filePath, Remetente, cc, verso, InicioMsgLog, NomeLog, Assunto, dataRecebida, body);
+        });
+
+        // 2) Cria o FileInfo do arquivo
+        var fileInfo = new FileInfo(filePath);
+
+        // 3) Substitui Thread.Sleep(100) por await Task.Delay(100)
+        await Task.Delay(100);
+
+        // 4) Verifica se o arquivo está bloqueado
+        if (File.Exists(fileInfo.FullName) && ob.IsFileLocked(fileInfo))
+        {
+            await Task.Delay(100);
+        }
+
+        // 5) Move o arquivo
+        var novoNome = $"FerruLariosBols{DateTime.Now:ddMMyyyyHHmmssff}{fileInfo.Name}";
+        var novoCaminho = Path.Combine(pastaDestino, novoNome);
+        File.Move(fileInfo.FullName, novoCaminho);
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Erro geral: " + ex.Message);
+    }
+}
+Como chamar esse método
+Se estiver em um evento de clique no WinForms (ou outro lugar que permita async), faça:
+csharp
+Copiar
+private async void btnProcessar_Click(object sender, EventArgs e)
+{
+    await ProcessarPlanilhaAsync(
+        filePath,
+        Remetente,
+        cc,
+        verso,
+        InicioMsgLog,
+        NomeLog,
+        Assunto,
+        dataRecebida,
+        body,
+        pastaDestino,
+        _ID_planilha,
+        NomeArquivoUploadCampos,
+        validarTiposCampos
+    );
+}
