@@ -1,0 +1,15 @@
+try
+{
+    xWorkBook.Close(false, Type.Missing, Type.Missing);
+    xApp.Quit();
+}
+finally
+{
+    Marshal.ReleaseComObject(xWorkSheet);
+    Marshal.ReleaseComObject(xWorkBook);
+    Marshal.ReleaseComObject(xApp);
+
+    xWorkSheet = null;
+    xWorkBook = null;
+    xApp = null;
+}
