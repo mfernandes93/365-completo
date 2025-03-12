@@ -1,0 +1,56 @@
+ string conta = "Onboarding"; // Exemplo: você pode atribuir dinamicamente
+
+        // Define as pastas de destino com base no valor da conta
+        string pastaDestino = string.Empty;
+
+        if (conta == "Onboarding")
+        {
+            pastaDestino = @"C:\Destino\Onboarding";
+        }
+        else if (conta == "agropf")
+        {
+            pastaDestino = @"C:\Destino\agropf";
+        }
+        else
+        {
+            Console.WriteLine("Conta não reconhecida. Operação cancelada.");
+            return;
+        }
+
+        // Caminho da pasta raiz (onde está rodando o programa)
+        string pastaRaiz = AppDomain.CurrentDomain.BaseDirectory;
+
+        // Busca arquivos com o padrão "email - *.msg"
+        string[] arquivos = Directory.GetFiles(pastaRaiz, "email - *.msg");
+
+        if (arquivos.Length == 0)
+        {
+            Console.WriteLine("Nenhum arquivo encontrado.");
+            return;
+        }
+
+        // Garante que a pasta de destino exista
+        if (!Directory.Exists(pastaDestino))
+        {
+            Directory.CreateDirectory(pastaDestino);
+        }
+
+        // Move todos os arquivos encontrados
+        foreach (string arquivo in arquivos)
+        {
+            string nomeArquivo = Path.GetFileName(arquivo);
+            string destinoCompleto = Path.Combine(pastaDestino, nomeArquivo);
+
+            try
+            {
+                File.Move(arquivo, destinoCompleto);
+                Console.WriteLine($"Arquivo {nomeArquivo} movido para {pastaDestino}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao mover o arquivo {nomeArquivo}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("Processo concluído.");
+    }
