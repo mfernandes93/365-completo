@@ -32,6 +32,12 @@ class Program
         // Busca todos os arquivos com o padrão
         Regex padraoArquivo = new Regex(@"^email - \d+\.msg$", RegexOptions.IgnoreCase);
 
+        var arquivos = arquivosBrutos
+            .Select(f => Path.GetFileName(f))
+            .Where(nome => padraoArquivo.IsMatch(nome))
+            .Select(nome => Path.Combine(pastaRaiz, nome))
+            .ToArray();
+
         if (arquivos.Length == 0)
         {
             MessageBox.Show("Nenhum arquivo encontrado.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
