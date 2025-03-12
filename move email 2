@@ -1,0 +1,75 @@
+using System;
+using System.IO;
+using System.Linq;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        string conta = "Onboarding"; // Exemplo, você pode definir dinamicamente
+        string emailTo = "cliente@dominio.com"; // Exemplo, pode vir de outro lugar
+
+        // Defina as pastas de destino conforme a conta
+        string pastaDestino = string.Empty;
+
+        if (conta == "Onboarding")
+        {
+            pastaDestino = @"C:\Destino\Onboarding";
+        }
+        else if (conta == "agropf")
+        {
+            pastaDestino = @"C:\Destino\agropf";
+        }
+        else
+        {
+            Console.WriteLine("Conta não reconhecida. Operação cancelada.");
+            return;
+        }
+
+        // Caminho da pasta raiz (onde o programa roda)
+        string pastaRaiz = AppDomain.CurrentDomain.BaseDirectory;
+
+        // Busca todos os arquivos com o padrão
+        var arquivos = Directory.GetFiles(pastaRaiz, "email - *.msg");
+
+        if (arquivos.Length == 0)
+        {
+            Console.WriteLine("Nenhum arquivo encontrado.");
+            return;
+        }
+
+        // Seleciona o arquivo mais recente com base na data de criação
+        string ultimoArquivo = arquivos
+            .Select(f => new FileInfo(f))
+            .OrderByDescending(f => f.CreationTime)
+            .First()
+            .FullName;
+
+        // Garante que a pasta de destino exista
+        if (!Directory.Exists(pastaDestino))
+        {
+            Directory.CreateDirectory(pastaDestino);
+        }
+
+        try
+        {
+            // Monta o novo nome do arquivo
+            string dataHoraAtual = DateTime.Now.ToString("ddMMyyyy_HHmmss");
+            string nomeArquivoNovo = $"email_{dataHoraAtual}_{emailTo.Replace("@", "_").Replace(".", "_")}.msg";
+
+            // Caminho completo do destino
+            string destinoCompleto = Path.Combine(pastaDestino, nomeArquivoNovo);
+
+            // Move e renomeia o arquivo
+            File.Move(ultimoArquivo, destinoCompleto);
+
+            Console.WriteLine($"Arquivo movido para {destinoCompleto}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao mover/renomear o arquivo: {ex.Message}");
+        }
+
+        Console.WriteLine("Processo finalizado.");
+    }
+}
