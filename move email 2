@@ -30,7 +30,7 @@ class Program
         string pastaRaiz = AppDomain.CurrentDomain.BaseDirectory;
 
         // Busca todos os arquivos com o padrão
-        var arquivos = Directory.GetFiles(pastaRaiz, "email - *.msg");
+        Regex padraoArquivo = new Regex(@"^email - \d+\.msg$", RegexOptions.IgnoreCase);
 
         if (arquivos.Length == 0)
         {
