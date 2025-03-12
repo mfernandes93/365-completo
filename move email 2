@@ -34,7 +34,7 @@ class Program
 
         if (arquivos.Length == 0)
         {
-            Console.WriteLine("Nenhum arquivo encontrado.");
+            MessageBox.Show("Nenhum arquivo encontrado.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
