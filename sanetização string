@@ -1,0 +1,5 @@
+string original = "CON?.txt   "; // Exemplo
+        string sanitized = Regex.Replace(original ?? "", @"[\x00-\x1F<>:""/\\|?*]", "_")
+                                .TrimEnd(' ', '.');
+        if (sanitized.Length > 255)
+            sanitized = sanitized.Substring(0, 255);
