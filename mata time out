@@ -1,0 +1,29 @@
+if (messages.NextPageRequest != null)
+{
+    // Defina o tempo limite que desejar (ex.: 10 segundos)
+    int timeoutSeconds = 10;
+
+    // 1) Cria a Task para buscar a próxima página
+    var getNextPageTask = messages.NextPageRequest.GetAsync();
+
+    // 2) Cria a Task de "espera" para simular o timeout
+    var delayTask = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds));
+
+    // 3) Aguarda a primeira que terminar
+    var finishedTask = await Task.WhenAny(getNextPageTask, delayTask);
+    if (finishedTask == getNextPageTask)
+    {
+        // Se a chamada ao Graph terminar antes do delay
+        messages = await getNextPageTask; 
+    }
+    else
+    {
+        // Se o delayTask terminar primeiro => Timeout
+        Console.WriteLine($"A requisição de próxima página excedeu {timeoutSeconds} segundos e foi interrompida.");
+        return; // ou break; ou como preferir
+    }
+}
+else
+{
+    return;
+}
