@@ -1,0 +1,124 @@
+using Microsoft.Graph;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace ExemploLeituraSubpastas
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Em .NET 4.5.2, não podemos ter async Main,
+            // então chamamos o método assíncrono assim:
+            LerEmailsComSubpastas().GetAwaiter().GetResult();
+
+            Console.WriteLine("Pressione qualquer tecla para sair...");
+            Console.ReadKey();
+        }
+
+        /// <summary>
+        /// Único método assíncrono que:
+        /// 1) Obtém pastas (raiz) de um usuário;
+        /// 2) Faz BFS para varrer subpastas;
+        /// 3) Lê mensagens de cada pasta e imprime assunto no console + arquivo.
+        /// </summary>
+        public static async Task LerEmailsComSubpastas()
+        {
+            try
+            {
+                // (A) Substitua por seu GraphServiceClient já autenticado:
+                GraphServiceClient graphClient = null; // = ObterGraphClientAutenticado();
+
+                // (B) Defina a caixa de e-mail que você quer ler:
+                string mailBox = "outro.usuario@seudominio.com";
+                
+                // (C) Caminho do arquivo de saída
+                string caminhoArquivo = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailsExportados.txt");
+
+                using (var writer = new StreamWriter(caminhoArquivo, false))
+                {
+                    // 1) Obter pastas de primeiro nível
+                    var folderPage = await graphClient.Users[mailBox]
+                                                      .MailFolders
+                                                      .Request()
+                                                      .Top(50)
+                                                      .GetAsync();
+
+                    // Lista com todas as pastas raiz
+                    var allRootFolders = new List<MailFolder>();
+                    allRootFolders.AddRange(folderPage.CurrentPage);
+
+                    // Paginação de pastas raiz
+                    while (folderPage.NextPageRequest != null)
+                    {
+                        folderPage = await folderPage.NextPageRequest.GetAsync();
+                        allRootFolders.AddRange(folderPage.CurrentPage);
+                    }
+
+                    // 2) Criamos uma fila para processar cada pasta (BFS),
+                    //    incluindo as subpastas que forem surgindo.
+                    var filaPastas = new Queue<MailFolder>(allRootFolders);
+
+                    // 3) Enquanto houver pasta na fila, processar:
+                    while (filaPastas.Count > 0)
+                    {
+                        var pastaAtual = filaPastas.Dequeue();
+                        string nomePasta = pastaAtual.DisplayName ?? "Sem Nome";
+
+                        // (i) Mostramos no console e no arquivo
+                        Console.WriteLine("[PASTA]: " + nomePasta);
+                        await writer.WriteLineAsync("[PASTA]: " + nomePasta);
+
+                        // (ii) Ler as mensagens dessa pasta (paginação)
+                        var msgPage = await graphClient.Users[mailBox]
+                                                       .MailFolders[pastaAtual.Id]
+                                                       .Messages
+                                                       .Request()
+                                                       .Top(50)
+                                                       .Select(m => new { m.Subject })  // só o Assunto
+                                                       .OrderBy("sentDateTime DESC")
+                                                       .GetAsync();
+
+                        var allMessages = new List<Message>();
+                        allMessages.AddRange(msgPage.CurrentPage);
+
+                        while (msgPage.NextPageRequest != null)
+                        {
+                            msgPage = await msgPage.NextPageRequest.GetAsync();
+                            allMessages.AddRange(msgPage.CurrentPage);
+                        }
+
+                        // Exibimos cada assunto
+                        foreach (var msg in allMessages)
+                        {
+                            string assunto = msg.Subject ?? "Sem assunto";
+                            Console.WriteLine("Assunto: " + assunto);
+                            await writer.WriteLineAsync("Assunto: " + assunto);
+                        }
+
+                        Console.WriteLine();
+                        await writer.WriteLineAsync();
+
+                        // (iii) Obter as subpastas (child folders) desta pasta
+                        var subFolderPage = await graphClient.Users[mailBox]
+                                                             .MailFolders[pastaAtual.Id]
+                                                             .ChildFolders
+                                                             .Request()
+                                                             .Top(50)
+                                                             .GetAsync();
+
+                        var childFolders = new List<MailFolder>();
+                        childFolders.AddRange(subFolderPage.CurrentPage);
+
+                        // Paginação de subpastas
+                        while (subFolderPage.NextPageRequest != null)
+                        {
+                            subFolderPage = await subFolderPage.NextPageRequest.GetAsync();
+                            childFolders.AddRange(subFolderPage.CurrentPage);
+                        }
+
+                        // (iv) Enfileirar as subpastas encontradas, para processá-las também
+                        foreach (var subpasta in childFolders)
+     
