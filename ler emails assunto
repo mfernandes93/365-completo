@@ -1,0 +1,103 @@
+using Microsoft.Graph;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace ExemploLeituraEmails
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Aqui chamamos o método assíncrono de forma síncrona,
+            // pois em .NET 4.5.2 não temos async Main().
+            LerEmailsEImprimirAsync().GetAwaiter().GetResult();
+
+            Console.WriteLine("Pressione qualquer tecla para sair...");
+            Console.ReadKey();
+        }
+
+        private static async Task LerEmailsEImprimirAsync()
+        {
+            try
+            {
+                // 1) Substitua por sua instância do GraphServiceClient já autenticado.
+                //    Exemplo: GraphServiceClient graphClient = ObterGraphClientAutenticado();
+                GraphServiceClient graphClient = null;
+
+                // 2) Buscar todas as pastas (apenas nível atual).
+                var allFolders = new List<MailFolder>();
+                var folderPage = await graphClient.Me
+                                                 .MailFolders
+                                                 .Request()
+                                                 .Top(50)
+                                                 .GetAsync();
+
+                allFolders.AddRange(folderPage.CurrentPage);
+
+                // Paginação de pastas
+                while (folderPage.NextPageRequest != null)
+                {
+                    folderPage = await folderPage.NextPageRequest.GetAsync();
+                    allFolders.AddRange(folderPage.CurrentPage);
+                }
+
+                // 3) Caminho do arquivo para salvar resultados
+                string caminhoArquivo = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailsExportados.txt");
+
+                // 4) Abre/Cria o arquivo
+                using (var writer = new StreamWriter(caminhoArquivo, false))
+                {
+                    // 5) Para cada pasta, buscar mensagens e imprimir assunto
+                    foreach (var folder in allFolders)
+                    {
+                        string folderName = folder.DisplayName ?? "Sem Nome";
+                        Console.WriteLine("[PASTA]: " + folderName);
+                        await writer.WriteLineAsync("[PASTA]: " + folderName);
+
+                        // 6) Buscar mensagens
+                        var allMessages = new List<Message>();
+                        var messagePage = await graphClient.Me
+                                                           .MailFolders[folder.Id]
+                                                           .Messages
+                                                           .Request()
+                                                           .Top(50)
+                                                           .Select(m => new
+                                                           {
+                                                               m.Subject
+                                                           })
+                                                           .OrderBy("sentDateTime DESC")
+                                                           .GetAsync();
+
+                        allMessages.AddRange(messagePage.CurrentPage);
+
+                        // Paginação de mensagens
+                        while (messagePage.NextPageRequest != null)
+                        {
+                            messagePage = await messagePage.NextPageRequest.GetAsync();
+                            allMessages.AddRange(messagePage.CurrentPage);
+                        }
+
+                        // 7) Imprime e salva só o assunto
+                        foreach (var msg in allMessages)
+                        {
+                            string assunto = msg.Subject ?? "Sem assunto";
+                            Console.WriteLine("Assunto: " + assunto);
+                            await writer.WriteLineAsync("Assunto: " + assunto);
+                        }
+
+                        Console.WriteLine();
+                        await writer.WriteLineAsync();
+                    }
+                }
+
+                Console.WriteLine("\nProcesso concluído. Arquivo gerado em: " + caminhoArquivo);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro: " + ex.Message);
+            }
+        }
+    }
+}
