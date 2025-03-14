@@ -121,4 +121,18 @@ namespace ExemploLeituraSubpastas
 
                         // (iv) Enfileirar as subpastas encontradas, para processá-las também
                         foreach (var subpasta in childFolders)
-     
+                        {
+                            filaPastas.Enqueue(subpasta);
+                        }
+                    }
+                }
+
+                Console.WriteLine("\nProcesso concluído. Arquivo gerado em: " + caminhoArquivo);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro: " + ex.Message);
+            }
+        }
+    }
+}
