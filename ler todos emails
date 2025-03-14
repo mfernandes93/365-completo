@@ -1,0 +1,102 @@
+ public static async Task LerAssuntosEmails(GraphServiceClient graphClient)
+        {
+            try
+            {
+                // Obter todas as pastas de e-mail
+                var mailFolders = await GetAllMailFoldersAsync(graphClient);
+
+                // Caminho do arquivo para salvar (pasta raiz do executável)
+                string caminhoArquivo = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailsExportados.txt");
+                using var writer = new StreamWriter(caminhoArquivo, append: false);
+
+                // Iterar sobre as pastas
+                foreach (var folder in mailFolders)
+                {
+                    string folderName = folder.DisplayName ?? "Sem Nome";
+                    Console.WriteLine($"[PASTA]: {folderName}");
+                    await writer.WriteLineAsync($"[PASTA]: {folderName}");
+
+                    // Obter as mensagens da pasta (apenas o assunto)
+                    var messages = await GetAllMessagesInFolderAsync(graphClient, folder.Id);
+
+                    // Imprimir e salvar apenas o Assunto
+                    foreach (var message in messages)
+                    {
+                        string assunto = message.Subject ?? "Sem assunto";
+                        
+                        // Console
+                        Console.WriteLine($"Assunto: {assunto}");
+
+                        // Arquivo
+                        await writer.WriteLineAsync($"Assunto: {assunto}");
+                    }
+
+                    Console.WriteLine();
+                    await writer.WriteLineAsync();
+                }
+
+                Console.WriteLine($"\nProcesso concluído. Arquivo gerado em: {caminhoArquivo}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao ler e-mails: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Retorna todas as pastas de e-mail (Inbox, etc.). 
+        /// Se quiser incluir subpastas recursivas, basta adaptar aqui.
+        /// </summary>
+        private static async Task<List<MailFolder>> GetAllMailFoldersAsync(GraphServiceClient graphClient)
+        {
+            var allFolders = new List<MailFolder>();
+
+            var result = await graphClient.Me.MailFolders
+                .Request()
+                .Top(50) // Ajuste se tiver muitas pastas
+                .GetAsync();
+
+            allFolders.AddRange(result.CurrentPage);
+
+            // Paginação, caso haja mais do que 50
+            while (result.NextPageRequest != null)
+            {
+                result = await result.NextPageRequest.GetAsync();
+                allFolders.AddRange(result.CurrentPage);
+            }
+
+            return allFolders;
+        }
+
+        /// <summary>
+        /// Retorna todas as mensagens de uma pasta específica, só com Subject.
+        /// </summary>
+        private static async Task<List<Message>> GetAllMessagesInFolderAsync(GraphServiceClient graphClient, string folderId)
+        {
+            var allMessages = new List<Message>();
+
+            var result = await graphClient
+                .Me
+                .MailFolders[folderId]
+                .Messages
+                .Request()
+                .Top(50) // Ajuste se precisar de mais por página
+                .Select(m => new {
+                    m.Subject
+                })
+                .OrderBy("sentDateTime DESC") // Opcional
+                .GetAsync();
+
+            allMessages.AddRange(result.CurrentPage);
+
+            // Paginação para obter todas as páginas
+            while (result.NextPageRequest != null)
+            {
+                result = await result.NextPageRequest.GetAsync();
+                allMessages.AddRange(result.CurrentPage);
+            }
+
+            return allMessages;
+        }
+    }
+}
