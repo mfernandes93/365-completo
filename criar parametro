@@ -1,0 +1,7 @@
+INSERT INTO [DBTB400].[MOBIOS_CCRP].[tb_0200_Parametros]
+       ([Nome], [Valor], [Descrição], [Obrigatório], [Sistema])
+VALUES ('NovoNome',
+        'NovoValor',
+        'Nova descrição',
+         0,          -- Exemplo de valor para "Obrigatório"
+         1);         -- Exemplo de valor para "Sistema"
