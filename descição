@@ -1,0 +1,23 @@
+Descrição do Mobios e Migração para Microsoft Graph
+
+Anteriormente, no Mobios, existiam métodos com a finalidade de realizar a leitura automatizada de duas caixas de e-mail hospedadas no Exchange, efetuando em segundo plano a filtragem das mensagens recebidas e o download de arquivos anexados, seguindo critérios específicos de busca.
+
+Com a migração de parte das caixas de e-mail para o Office 365, surgiu a necessidade de atualizar o processo para garantir a continuidade e o aprimoramento das funcionalidades. Para isso, foi desenvolvido um novo método baseado na Microsoft Graph API, capaz de acessar os recursos de e-mail do Office 365 de forma mais moderna, flexível e integrada. Contudo, esse método foi criado para funcionar paralelamente ao método anterior, uma vez que ainda há caixas de e-mail utilizando o Exchange on-premises.
+
+Além disso, havia também um método responsável pelo disparo automático de e-mails conforme era acionado por outros métodos. No momento, esse modelo foi adaptado para salvar o e-mail completo em uma pasta de rede, de modo a verificar quais mensagens estão sendo criadas. Futuramente, após a filtragem desses e-mails, será desenvolvida uma nova funcionalidade de disparo automático, que igualmente funcionará em paralelo tanto no Office 365 quanto no Exchange on-premises. Essa parte, no entanto, ainda não está operacional para evitar disparos incorretos.
+
+A atualização do fluxo de trabalho envolveu:
+
+Adequação da Autenticação
+Configuração dos parâmetros de autenticação no Azure para que a aplicação pudesse se comunicar com o Microsoft Graph de modo seguro e compatível com as políticas corporativas.
+
+Adaptação das Regras de Filtragem
+Ajuste das regras de pesquisa, utilizando filtros e parâmetros disponibilizados pela Graph API para identificar e categorizar as mensagens relevantes no Office 365.
+
+Download de Anexos
+Implementação das rotinas de download por meio dos endpoints específicos da Graph, permitindo a extração dos arquivos de maneira rápida e confiável.
+
+Manutenção do Suporte ao Exchange On-Premises
+O novo método foi configurado para rodar em conjunto com o anterior, de modo que as caixas ainda hospedadas no Exchange on-premises continuem funcionando normalmente, sem interromper o fluxo de trabalho existente.
+
+Como resultado, obteve-se uma solução mais robusta, que aproveita os recursos do Office 365 e da Microsoft Graph para gerenciar e-mails e anexos com maior segurança e escalabilidade, além de assegurar a compatibilidade com o método anterior para as caixas ainda não migradas. Isso também facilita futuras manutenções e evoluções do sistema, inclusive a reativação do envio automático de e-mails de forma controlada e integrada.
