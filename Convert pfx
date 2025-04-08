@@ -1,0 +1,43 @@
+using System;
+using System.IO;
+
+namespace PfxParaString
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Digite o caminho completo do arquivo .pfx:");
+            var caminhoPfx = Console.ReadLine();
+
+            if (!File.Exists(caminhoPfx))
+            {
+                Console.WriteLine("Arquivo não encontrado!");
+                return;
+            }
+
+            try
+            {
+                byte[] bytesArquivo = File.ReadAllBytes(caminhoPfx);
+                string base64String = Convert.ToBase64String(bytesArquivo);
+
+                // Exibindo no Console
+                Console.WriteLine("\nArquivo convertido com sucesso!");
+                Console.WriteLine("\nString Base64 gerada:\n");
+                Console.WriteLine(base64String);
+
+                // Opcional: Salvar em um arquivo .txt
+                string caminhoSaida = caminhoPfx + "_base64.txt";
+                File.WriteAllText(caminhoSaida, base64String);
+                Console.WriteLine($"\nString salva em: {caminhoSaida}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro: " + ex.Message);
+            }
+
+            Console.WriteLine("\nPressione qualquer tecla para sair...");
+            Console.ReadKey();
+        }
+    }
+}
