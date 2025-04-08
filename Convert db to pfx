@@ -1,0 +1,49 @@
+using System;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+
+namespace SeuProjeto
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Sua string Base64 obtida do banco:
+            string base64DoBanco = "SUA_STRING_BASE64_AQUI";
+
+            // Caminho onde o arquivo será salvo temporariamente
+            string caminhoArquivo = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "certificado.pfx");
+
+            try
+            {
+                // Salva o arquivo convertido
+                File.WriteAllBytes(caminhoArquivo, Convert.FromBase64String(base64DoBanco));
+
+                Console.WriteLine("Certificado salvo em: " + caminhoArquivo);
+
+                // Utilize aqui seu certificado (exemplo de uso prático)
+                var certificado = new X509Certificate2(caminhoArquivo, "senha-do-pfx");
+                Console.WriteLine("Certificado carregado com sucesso.");
+
+                // Seu código que utiliza o certificado aqui...
+
+                certificado.Reset(); // Libera o certificado antes de excluir o arquivo
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro: " + ex.Message);
+            }
+            finally
+            {
+                // Exclui o arquivo após o uso
+                if (File.Exists(caminhoArquivo))
+                {
+                    File.Delete(caminhoArquivo);
+                    Console.WriteLine("Certificado deletado após o uso.");
+                }
+            }
+
+            Console.ReadKey();
+        }
+    }
+}
