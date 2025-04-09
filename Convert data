@@ -1,0 +1,56 @@
+
+
+using System;
+using System.Globalization;
+
+public static class ConversorDatas
+{
+    /// <summary>
+    /// Converte a string de data/hora para o formato dd/MM/yyyy HH:mm:ss
+    /// se estiver em um dos formatos permitidos. Caso contrário, devolve "Formato inválido".
+    /// </summary>
+    /// <param name="dataOriginal">A string representando data/hora a converter.</param>
+    /// <returns>String convertida ou "Formato inválido".</returns>
+    public static string ConverterData(string dataOriginal)
+    {
+        // Se for vazio ou nulo, simplesmente não converte
+        if (string.IsNullOrEmpty(dataOriginal))
+        {
+            return dataOriginal; 
+            // ou "return """ se preferir forçar uma string vazia
+        }
+
+        // Substitui hífens por barras, ex.: 2025-01-15 => 2025/01/15
+        string entrada = dataOriginal.Replace('-', '/').Trim();
+
+        // Lista de formatos aceitos
+        // Ajuste conforme necessidade do seu sistema.
+        string[] formatosPossiveis = new string[]
+        {
+            "yyyy/MM/dd HH:mm:ss", // ex.: 2025/01/15 13:45:59
+            "dd/MM/yyyy HH:mm:ss", // ex.: 15/01/2025 13:45:59
+            "yyyy/MM/dd",         // ex.: 2025/01/15
+            "dd/MM/yyyy",         // ex.: 15/01/2025
+            "yyyy/MM",            // ex.: 2025/01
+            "MM/yyyy"             // ex.: 01/2025
+        };
+
+        // Tenta analisar a data/hora em pelo menos um dos formatos
+        if (DateTime.TryParseExact(
+                entrada,
+                formatosPossiveis,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out DateTime dtConvertida))
+        {
+            // Sucesso: converte para o formato de saída desejado (ex.: ano com 4 dígitos)
+            string formatoSaida = "dd/MM/yyyy HH:mm:ss";
+            return dtConvertida.ToString(formatoSaida);
+        }
+        else
+        {
+            // Não correspondeu a nenhum dos formatos permitidos
+            return "Formato inválido";
+        }
+    }
+}
