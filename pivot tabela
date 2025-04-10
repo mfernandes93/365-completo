@@ -1,0 +1,26 @@
+SELECT 
+    ID_SERVICO,
+    [4345] AS NOME_GRUPO_ECONOMICO,
+    [4465] AS RAZAO_SOCIAL,
+    [1001] AS CNPJ,
+    [27405] AS VIGENTE,
+    [6140] AS FILA,
+    [27444] AS MES_RENOVACAO,
+    [27406] AS DATA_VENCIMENTO,
+    [4392] AS CAMBIO,
+    [4188] AS NOME_OFFICER,
+    [4190] AS EMAIL_OFFICER
+FROM (
+    SELECT 
+        ID_SERVICO, 
+        Id_Campo, 
+        ValorCampo
+    FROM [DBT8400].[MOBIOS_CCRP].[tb_0126_DadosServico]
+) AS SourceTable
+PIVOT (
+    MAX(ValorCampo)
+    FOR Id_Campo IN (
+        [4345], [4465], [1001], [27405], [6140],
+        [27444], [27406], [4392], [4188], [4190]
+    )
+) AS PivotTable;
