@@ -24,3 +24,18 @@ PIVOT (
         [27444], [27406], [4392], [4188], [4190]
     )
 ) AS PivotTable;
+
+
+FROM (
+    SELECT 
+        ID_SERVICO, 
+        Id_Campo, 
+        ValorCampo
+    FROM [DBT8400].[MOBIOS_CCRP].[tb_0126_DadosServico]
+    WHERE ID_SERVICO IN (
+        SELECT ID_SERVICO
+        FROM [DBT8400].[MOBIOS_CCRP].[tb_0126_DadosServico]
+        WHERE Id_Campo = 6140
+          AND ValorCampo LIKE '%PRIORITARIO%'
+    )
+) AS SourceTable
