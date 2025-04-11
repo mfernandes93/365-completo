@@ -1,0 +1,19 @@
+var attachmentsPage = new MessageAttachmentsCollectionPage();
+
+        foreach (var attach in msgKitEmail.Attachments)
+        {
+            var stream = attach.Data as Stream; // 👈 substitua 'Data' se o nome for diferente
+
+            if (stream != null)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+
+                    attachmentsPage.Add(new FileAttachment
+                    {
+                        ODataType = "#microsoft.graph.fileAttachment",
+                        Name = attach.FileName,
+                        ContentBytes = ms.ToArray(),
+                        ContentType = "application/octet-stream" // opcional: ajustar por extensão
+                    });
