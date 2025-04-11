@@ -1,0 +1,81 @@
+await GraphMsgKitHelper.SendEmailFromMsgKitAsync(email);
+
+using Microsoft.Graph;
+using MsgKit;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+
+public static class GraphMsgKitHelper
+{
+    public static async Task<bool> SendEmailFromMsgKitAsync(Email msgKitEmail)
+    {
+        try
+        {
+            // Pegue seu token aqui (como quiser: método, config, variáveis seguras)
+            string graphToken = "SEU_ACCESS_TOKEN_AQUI";
+
+            var graphClient = new GraphServiceClient(new DelegateAuthenticationProvider(requestMessage =>
+            {
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", graphToken);
+                return Task.FromResult(0);
+            }));
+
+            // Recipients: To
+            var toRecipients = msgKitEmail.Recipients
+                .Where(r => r.RecipientType == MsgKit.Enums.RecipientType.To)
+                .Select(r => new Recipient
+                {
+                    EmailAddress = new EmailAddress { Address = r.EmailAddress }
+                }).ToList();
+
+            // Recipients: Cc
+            var ccRecipients = msgKitEmail.Recipients
+                .Where(r => r.RecipientType == MsgKit.Enums.RecipientType.Cc)
+                .Select(r => new Recipient
+                {
+                    EmailAddress = new EmailAddress { Address = r.EmailAddress }
+                }).ToList();
+
+            // Email body
+            var body = new ItemBody
+            {
+                ContentType = BodyType.Html,
+                Content = msgKitEmail.BodyHtml ?? msgKitEmail.BodyText ?? ""
+            };
+
+            // Attachments
+            var attachments = new List<Attachment>();
+            foreach (var attach in msgKitEmail.Attachments)
+            {
+                attachments.Add(new FileAttachment
+                {
+                    ODataType = "#microsoft.graph.fileAttachment",
+                    Name = attach.FileName,
+                    ContentBytes = attach.Data,
+                    ContentType = "application/octet-stream"
+                });
+            }
+
+            // Montar mensagem
+            var message = new Message
+            {
+                Subject = msgKitEmail.Subject,
+                Body = body,
+                ToRecipients = toRecipients,
+                CcRecipients = ccRecipients,
+                Attachments = attachments
+            };
+
+            // Enviar
+            await graphClient.Me.SendMail(message, true).Request().PostAsync();
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Erro ao enviar e-mail via Graph: " + ex.Message);
+            return false;
+        }
+    }
+}
