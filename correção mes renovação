@@ -1,0 +1,69 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+
+class Registro
+{
+    public int IdServico { get; set; }
+    public int IdCampo { get; set; }
+    public string ValorCampo { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        string caminhoCsv = "dados.csv";
+        string caminhoSaida = "updates.sql";
+
+        if (!File.Exists(caminhoCsv))
+        {
+            Console.WriteLine($"Arquivo CSV '{caminhoCsv}' não encontrado.");
+            return;
+        }
+
+        var registros = new List<Registro>();
+        var linhas = File.ReadAllLines(caminhoCsv);
+
+        for (int i = 1; i < linhas.Length; i++) // pula o cabeçalho
+        {
+            var partes = linhas[i].Split(',');
+
+            if (partes.Length < 3)
+                continue;
+
+            if (int.TryParse(partes[0], out int idServico) &&
+                int.TryParse(partes[1], out int idCampo))
+            {
+                registros.Add(new Registro
+                {
+                    IdServico = idServico,
+                    IdCampo = idCampo,
+                    ValorCampo = partes[2].Trim()
+                });
+            }
+        }
+
+        var updates = new List<string>();
+
+        foreach (var reg in registros)
+        {
+            if (DateTime.TryParseExact(reg.ValorCampo, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime data))
+            {
+                int ultimoDia = DateTime.DaysInMonth(data.Year, data.Month);
+                var dataCorreta = new DateTime(data.Year, data.Month, ultimoDia);
+                string valorFormatado = dataCorreta.ToString("yyyy-MM-dd 00:00:00");
+
+                string sql = $@"UPDATE [DBT400].[MOBIOS_CCRP].[tb_0126_DadosServico]
+SET ValorCampo = '{valorFormatado}'
+WHERE ID_Servico = {reg.IdServico} AND Id_Campo = {reg.IdCampo};";
+
+                updates.Add(sql);
+            }
+        }
+
+        File.WriteAllLines(caminhoSaida, updates);
+        Console.WriteLine($"Arquivo '{caminhoSaida}' gerado com sucesso com {updates.Count} updates.");
+    }
+}
