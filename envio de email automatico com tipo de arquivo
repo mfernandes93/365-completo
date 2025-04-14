@@ -1,0 +1,100 @@
+using Microsoft.Graph;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+public static class GraphMsgKitHelper
+{
+    public static Message BuildMessageFromMsgKitEmail(MsgKit.Email msgKitEmail)
+    {
+        var body = new ItemBody
+        {
+            ContentType = BodyType.Html,
+            Content = msgKitEmail.BodyHtml
+        };
+
+        var toRecipients = msgKitEmail.Recipients
+            .Where(r => r.RecipientType == MsgKit.Enums.RecipientType.To)
+            .Select(r => new Recipient
+            {
+                EmailAddress = new EmailAddress { Address = r.Email }
+            })
+            .ToList();
+
+        var ccRecipients = msgKitEmail.Recipients
+            .Where(r => r.RecipientType == MsgKit.Enums.RecipientType.Cc)
+            .Select(r => new Recipient
+            {
+                EmailAddress = new EmailAddress { Address = r.Email }
+            })
+            .ToList();
+
+        var attachmentsPage = new MessageAttachmentsCollectionPage();
+
+        foreach (var attach in msgKitEmail.Attachments)
+        {
+            if (attach.Stream == null || attach.Stream.Length == 0)
+                continue;
+
+            attach.Stream.Position = 0; // Resetar posição sempre
+
+            using (var ms = new MemoryStream())
+            {
+                attach.Stream.CopyTo(ms);
+
+                var fileAttachment = new FileAttachment
+                {
+                    ODataType = "#microsoft.graph.fileAttachment",
+                    Name = attach.FileName,
+                    ContentBytes = ms.ToArray(),
+                    ContentType = GetMimeTypeFromFileName(attach.FileName)
+                };
+
+                attachmentsPage.Add(fileAttachment);
+            }
+        }
+
+        var message = new Message
+        {
+            Subject = msgKitEmail.Subject,
+            Body = body,
+            ToRecipients = toRecipients,
+            CcRecipients = ccRecipients,
+            Attachments = attachmentsPage
+        };
+
+        return message;
+    }
+
+    private static string GetMimeTypeFromFileName(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        switch (ext)
+        {
+            case ".jpg":
+            case ".jpeg": return "image/jpeg";
+            case ".png": return "image/png";
+            case ".gif": return "image/gif";
+            case ".bmp": return "image/bmp";
+            case ".tif":
+            case ".tiff": return "image/tiff";
+
+            case ".pdf": return "application/pdf";
+            case ".doc": return "application/msword";
+            case ".docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case ".xls": return "application/vnd.ms-excel";
+            case ".xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case ".ppt": return "application/vnd.ms-powerpoint";
+            case ".pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+            case ".txt": return "text/plain";
+            case ".csv": return "text/csv";
+            case ".xml": return "application/xml";
+            case ".zip": return "application/zip";
+            case ".rar": return "application/x-rar-compressed";
+
+            default: return "application/octet-stream";
+        }
+    }
+}
